@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Liste des stagiaires</title>
+  <link
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css"
+    rel="stylesheet"
+    integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC"
+    crossorigin="anonymous">
+</head>
+<body class="bg-light text-dark">
+  <main class="container py-4 py-md-5">
+    <div class="row justify-content-center">
+      <div class="col-12 col-lg-9">
+      <h1 class="h2 mb-2">Liste des stagiaires</h1>
+      <a class="d-inline-block mb-4 text-decoration-underline" href="index.html">
+        &larr; Inscrire un nouveau stagiaire
+      </a>
+
+      <p id="message" class="text-muted" role="status" aria-live="polite">
+        Chargement des stagiaires...
+      </p>
+      <div id="liste" class="d-grid gap-3"></div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    async function chargerStagiaires() {
+      const message = document.getElementById("message");
+      const liste = document.getElementById("liste");
+
+      try {
+        const response = await fetch("api/liste.php");
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.message || "Erreur de chargement.");
+        }
+
+        if (!Array.isArray(data)) {
+          throw new Error("La réponse du serveur est invalide.");
+        }
+
+        liste.replaceChildren();
+
+        if (data.length === 0) {
+          message.textContent = "Aucun stagiaire enregistré.";
+          return;
+        }
+
+        data.forEach((stagiaire) => {
+          const carte = document.createElement("article");
+          carte.className = "card shadow-sm";
+
+          const contenu = document.createElement("div");
+          contenu.className = "card-body d-flex align-items-center gap-3";
+
+          const image = document.createElement("img");
+          image.width = 88;
+          image.className = "rounded border flex-shrink-0";
+          image.alt = "Photo de " + (stagiaire.prenom || "stagiaire");
+
+          try {
+            const url = new URL(stagiaire.photo);
+            if (url.protocol !== "https:" || url.hostname !== "res.cloudinary.com") {
+              throw new Error("URL non autorisée");
+            }
+            image.src = url.href;
+          } catch {
+            image.alt = "Photo non disponible";
+          }
+
+          const infos = document.createElement("div");
+          infos.className = "flex-grow-1";
+
+          const nom = document.createElement("h2");
+          nom.className = "h5 card-title mb-2 text-break";
+          nom.textContent = (stagiaire.prenom || "") + " " + (stagiaire.nom || "");
+
+          const ville = document.createElement("p");
+          ville.className = "card-text text-muted mb-0";
+          ville.textContent = "Ville : " + (stagiaire.ville || "");
+
+          infos.append(nom, ville);
+          contenu.append(image, infos);
+          carte.append(contenu);
+          liste.append(carte);
+        });
+
+        message.textContent = data.length + " stagiaire(s) enregistré(s).";
+      } catch (error) {
+        message.textContent = error instanceof Error
+          ? error.message
+          : "Impossible de charger les stagiaires.";
+      }
+    }
+
+    chargerStagiaires();
+  </script>
+</body>
+</html>
